@@ -54,7 +54,7 @@ https://github.com/victorr/jsqueak
 
 **jan-tomsa/jsqueak**<br/>
 A fork maintained by Jan Tomsa, with bug fixing and refactoring.<br/>
-https://github.com/daitangio/jsqueak
+https://github.com/jan-tomsa/jsqueak
 
 **daitangio/jsqueak**<br/>
 Developed by Giovanni Giorgi, merged with the work from Jan Tomsa and the potato<br/>
