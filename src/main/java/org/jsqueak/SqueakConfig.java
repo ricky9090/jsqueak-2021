@@ -11,6 +11,8 @@ public class SqueakConfig {
 
     public static final boolean DEBUG_LOGGING = true;
 
+    public static final boolean PRIMITIVE_FAILED_LOGGING = true;
+
     public static final int LOGGING_MAX_LEN = 300;
 
     /**

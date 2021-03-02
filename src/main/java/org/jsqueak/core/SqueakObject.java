@@ -47,7 +47,7 @@ public class SqueakObject {
     Object[] pointers; //pointer fields; fixed as well as indexable
     Object bits;       //indexable binary data (bytes or ints)
 
-    SqueakObject(Integer cls, int fmt, int hsh, int[] imageData) {
+    public SqueakObject(Integer cls, int fmt, int hsh, int[] imageData) {
         //Initial creation from SqueakImage, with unmapped data
         sqClass = cls;
         format = (short) fmt;
@@ -55,12 +55,12 @@ public class SqueakObject {
         bits = imageData;
     }
 
-    SqueakObject(SqueakImage img) {
+    public SqueakObject(SqueakImage img) {
         //Creation of stub object (no pointers or bits)
         hash = img.registerObject(this);
     }
 
-    SqueakObject(SqueakImage img, SqueakObject cls, int indexableSize, SqueakObject filler) {
+    public SqueakObject(SqueakImage img, SqueakObject cls, int indexableSize, SqueakObject filler) {
         //Creation of objects from Squeak
         this(img);
         sqClass = cls;
@@ -389,5 +389,17 @@ public class SqueakObject {
 
     public Object getBits() {
         return bits;
+    }
+
+    // ------ static method ------
+
+    public static SqueakObject createSTString(String jString) {
+        SqueakObject obj = new SqueakObject(
+                SqueakVM.image,
+                (SqueakObject) SqueakVM.specialObjects[Squeak.splOb_ClassString],
+                jString.length(),
+                SqueakVM.nilObj);
+        obj.bits = jString.getBytes();
+        return obj;
     }
 }

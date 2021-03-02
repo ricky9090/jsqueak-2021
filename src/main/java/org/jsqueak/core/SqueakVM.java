@@ -23,6 +23,9 @@ THE SOFTWARE.
 
 package org.jsqueak.core;
 
+import org.jsqueak.input.ClipboardManager;
+import org.jsqueak.uilts.SqueakLogger;
+
 import java.io.FileInputStream;
 import java.util.Arrays;
 
@@ -33,17 +36,30 @@ import java.util.Arrays;
  */
 public class SqueakVM {
 
+    // Global instance object for convenient
     public static SqueakVM INSTANCE = null;
 
-    // static state:
-    SqueakImage image;
-    SqueakPrimitiveHandler primHandler;
+    // 31-bit small Integers, range:
+    public static int minSmallInt = -0x40000000;
+    public static int maxSmallInt = 0x3FFFFFFF;
+    public static int nonSmallInt = -0x50000000; //non-small and neg(so non pos32 too)
+    public static int millisecondClockMask = maxSmallInt >> 1; //keeps ms logic in small int range
 
-    SqueakObject nilObj;
-    SqueakObject falseObj;
-    SqueakObject trueObj;
-    Object[] specialObjects;
-    Object[] specialSelectors;
+    public static int minCachedInt = -2000;
+    public static int maxCachedInt = 4000;
+
+    static Integer[] cachedInts; // reusable SmallIntegers save space, reduce GC traffic
+
+    // static state:
+    public static SqueakImage image;
+    public static SqueakPrimitiveHandler primHandler;
+
+    public static SqueakObject nilObj;
+    public static SqueakObject falseObj;
+    public static SqueakObject trueObj;
+    public static Object[] specialObjects;
+    public static Object[] specialSelectors;
+
     // dynamic state:
     Object receiver = nilObj;
     SqueakObject activeContext = nilObj;
@@ -76,16 +92,8 @@ public class SqueakVM {
     private boolean deferDisplayUpdates;
     private int pendingFinalizationSignals;
 
-    // 31-bit small Integers, range:
-    public static int minSmallInt = -0x40000000;
-    public static int maxSmallInt = 0x3FFFFFFF;
-    public static int nonSmallInt = -0x50000000; //non-small and neg(so non pos32 too)
-    public static int millisecondClockMask = maxSmallInt >> 1; //keeps ms logic in small int range
-
-    public static int minCachedInt = -2000;
-    public static int maxCachedInt = 4000;
-
-    static Integer[] cachedInts; // reusable SmallIntegers save space, reduce GC traffic
+    // Component of VM
+    public final ClipboardManager clipboardManager = new ClipboardManager();
 
     public static void initSmallIntegerCache() {
         cachedInts = new Integer[maxCachedInt - minCachedInt + 1];
@@ -172,6 +180,8 @@ public class SqueakVM {
         freeLargeContexts = nilObj;
         reclaimableContextCount = 0;
         initMethodCache();
+
+        clipboardManager.reset();
     }
 
     private void loadInitialContext() {
@@ -1283,7 +1293,7 @@ public class SqueakVM {
         storeContextRegisters(); // not really necessary, I claim
         receiver = newContext.getPointer(Squeak.Context_receiver);
         if (receiver != newRcvr) {
-            System.err.println("receiver doesnt match");
+            SqueakLogger.log_E("Receiver doesn't match");
         }
         checkForInterrupts();
     }

@@ -29,6 +29,7 @@ With my changes/improvements to the project, now JSqueak can load and run a full
 * Reduce input lag by using a separate thread to notify input event.
 * Beta support for (Main)Window resizing (Have to do "restore display" x2 manually after resizing).
 * Beta support for 8/32 color depth (Also have to "restore display" manually).
+* Clipboard features (copy/cut/paste).
 
 ### TODO
 I'm planning to add more improvements to this project:

@@ -7,7 +7,7 @@ package org.jsqueak.core;
  */
 public class InterpreterProxy {
 
-    // TODO Determine to use either a singlton or pure util class
+    // TODO Determine to use either a singleton or pure util class
     // Currently, some of the VM state field is accessing & modifying by SqueakVM.INSTANCE
 
     private InterpreterProxy() {}
@@ -110,6 +110,13 @@ public class InterpreterProxy {
     }
     public static int SHR(int a, int b) {
         return b > 31 ? 0 : a >>> b;
+    }
+
+    public static boolean assertClassOfIs(Object target, Object classObject) {
+        if (target instanceof SqueakObject) {
+            return ((SqueakObject) target).sqClass == classObject;
+        }
+        return false;
     }
 
     //endregion
