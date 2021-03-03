@@ -277,7 +277,7 @@ public class SqueakPrimitiveHandler {
             (19 primitiveFail)
             */
             case 0:
-                return primitiveFail(0);
+                return primitiveFailNoLog(0);
             case 1:
                 return popNandPushIntIfOK(2, stackInteger(1) + stackInteger(0));  // Integer.add
             case 2:
@@ -315,7 +315,7 @@ public class SqueakPrimitiveHandler {
             case 18:
                 return primitiveMakePoint();
             case 19:
-                return false;  // Guard primitive for simulation -- *must* fail
+                return primitiveFailNoLog(19);  // Guard primitive for simulation -- *must* fail
 
             /*
             "LargeInteger Primitives (20-39)"
@@ -500,7 +500,7 @@ public class SqueakPrimitiveHandler {
             case 90:
                 return popNandPushIfOK(1, primitiveMousePoint()); // mousePoint
             case 91:
-                return false;
+                return false;  // primitiveTestDisplayDepth after v2.2
             case 96:
                 if (argCount == 0) return primitiveCopyBits((SqueakObject) vm.top(), 0);
                 else return primitiveCopyBits((SqueakObject) vm.stackValue(1), 1);
@@ -625,7 +625,6 @@ public class SqueakPrimitiveHandler {
             case 139:
                 return popNandPushIfOK(1, primitiveNextObject(stackNonInteger(0))); // Class.someInstance
             case 141:
-                // TODO
                 return primitiveClipboardText(argCount);
             case 142:
                 return popNandPushIfOK(1, makeStString("Macintosh HD:Users:danielingalls:Recent Squeaks:Squeak VMs etc.:")); //vmPath
@@ -732,8 +731,16 @@ public class SqueakPrimitiveHandler {
             case 233:
                 return primitiveSetFullScreen();
             case 235:
-                // TODO
-                return false;
+                return primitiveFailNoLog(235);
+            case 242:
+            case 243:
+            case 244:
+            case 245:
+            case 246:
+            case 247:
+            case 248:
+            case 249:
+                return primitiveFailNoLog(index);
 
             /*
             "VM Implementor Primitives (250-255)"
@@ -2042,6 +2049,14 @@ public class SqueakPrimitiveHandler {
     }
 
     /**
+     * Just return false.
+     * skip IDE warning in switch case
+     */
+    private boolean primitiveFailNoLog(int index) {
+        return false;
+    }
+
+    /**
      * FIXME: surely something better can be devised?
      * Idea: make argCount a field, then this method
      * needs no argument
@@ -2166,6 +2181,7 @@ public class SqueakPrimitiveHandler {
             SqueakObject s = vm.clipboardManager.clipboardRead();
             vm.pop();
             vm.push(s);
+            return true;
         }
         return false;
     }

@@ -30,6 +30,13 @@ public class ClipboardManager {
     }
 
     public SqueakObject clipboardRead() {
-        return null;
+        String target;
+        if (clipboard == null) {
+            target = "";
+        } else {
+            target = clipboard;
+        }
+        SqueakObject aStringObj = SqueakObject.createSTString(target);
+        return aStringObj;
     }
 }
