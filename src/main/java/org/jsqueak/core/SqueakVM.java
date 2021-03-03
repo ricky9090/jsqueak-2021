@@ -53,6 +53,7 @@ public class SqueakVM {
     // static state:
     public static SqueakImage image;
     public static SqueakPrimitiveHandler primHandler;
+    public static final ObjectMemory objectMemory = new ObjectMemory();
 
     public static SqueakObject nilObj;
     public static SqueakObject falseObj;

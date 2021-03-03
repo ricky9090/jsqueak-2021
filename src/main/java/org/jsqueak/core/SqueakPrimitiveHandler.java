@@ -539,7 +539,7 @@ public class SqueakPrimitiveHandler {
             case 110:
                 return popNandPushIfOK(2, (vm.stackValue(1) == vm.stackValue(0)) ? vm.trueObj : vm.falseObj); // ==
             case 112:
-                return popNandPushIfOK(1, SqueakVM.smallFromInt(image.spaceLeft())); // bytesLeft
+                return popNandPushIfOK(1, SqueakVM.smallFromInt(SqueakVM.objectMemory.spaceLeft())); // bytesLeft
             case 113: {
                 System.exit(0);
                 return true;
@@ -607,9 +607,9 @@ public class SqueakPrimitiveHandler {
             case 129:
                 return popNandPushIfOK(1, image.specialObjectsArray);
             case 130:
-                return popNandPushIfOK(1, SqueakVM.smallFromInt(image.fullGC())); // GC
+                return popNandPushIfOK(1, SqueakVM.smallFromInt(SqueakVM.objectMemory.fullGC())); // GC
             case 131:
-                return popNandPushIfOK(1, SqueakVM.smallFromInt(image.partialGC())); // GCmost
+                return popNandPushIfOK(1, SqueakVM.smallFromInt(SqueakVM.objectMemory.partialGC())); // GCmost
             case 132:
                 return primitiveObjectPointsTo();
             case 134:
@@ -1956,20 +1956,20 @@ public class SqueakPrimitiveHandler {
         if (!success) {
             return rcvr;
         }
-        success = image.bulkBecome(rcvr.pointers, arg.pointers, doBothWays);
+        success = SqueakVM.objectMemory.bulkBecome(rcvr.pointers, arg.pointers, doBothWays);
         return rcvr;
     }
 
     private SqueakObject primitiveSomeObject() {
-        return image.nextInstance(0, null);
+        return SqueakVM.objectMemory.nextInstance(0, null);
     }
 
     private SqueakObject primitiveSomeInstance(SqueakObject sqClass) {
-        return image.nextInstance(0, sqClass);
+        return SqueakVM.objectMemory.nextInstance(0, sqClass);
     }
 
     private Object primitiveNextObject(SqueakObject priorObject) {
-        SqueakObject nextObject = image.nextInstance(image.otIndexOfObject(priorObject) + 1, null);
+        SqueakObject nextObject = SqueakVM.objectMemory.nextInstance(SqueakVM.objectMemory.otIndexOfObject(priorObject) + 1, null);
         if (nextObject == vm.nilObj) {
             return SqueakVM.smallFromInt(0);
         }
@@ -1978,7 +1978,7 @@ public class SqueakPrimitiveHandler {
 
     private SqueakObject primitiveNextInstance(SqueakObject priorInstance) {
         SqueakObject sqClass = (SqueakObject) priorInstance.sqClass;
-        return image.nextInstance(image.otIndexOfObject(priorInstance) + 1, sqClass);
+        return SqueakVM.objectMemory.nextInstance(SqueakVM.objectMemory.otIndexOfObject(priorInstance) + 1, sqClass);
     }
 
     //  region more-primitive-for-squeak

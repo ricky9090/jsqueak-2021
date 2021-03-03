@@ -58,11 +58,11 @@ public class SqueakImage {
     private final String DEFAULT_IMAGE_NAME = "jsqueak.image";
 
     private SqueakVM vm;
-    private WeakReference[] objectTable;
-    private int otMaxUsed;
-    private int otMaxOld;
-    private int lastHash;
-    private int lastOTindex;
+    //private WeakReference[] objectTable;
+    //private int otMaxUsed;
+    //private int otMaxOld;
+    //private int lastHash;
+    //private int lastOTindex;
 
     private File imageFile;
 
@@ -111,161 +111,8 @@ public class SqueakImage {
         unbuffered.close();
     }
 
-    boolean bulkBecome(Object[] fromPointers, Object[] toPointers, boolean twoWay) {
-        int n = fromPointers.length;
-        Object p, ptr, body[], mut;
-        SqueakObject obj;
-        if (n != toPointers.length)
-            return false;
-        Hashtable mutations = new Hashtable(n * 4 * (twoWay ? 2 : 1));
-        for (int i = 0; i < n; i++) {
-            p = fromPointers[i];
-            if (!(p instanceof SqueakObject))
-                return false;  //non-objects in from array
-            if (mutations.get(p) != null)
-                return false; //repeated oops in from array
-            else
-                mutations.put(p, toPointers[i]);
-        }
-        if (twoWay) {
-            for (int i = 0; i < n; i++) {
-                p = toPointers[i];
-                if (!(p instanceof SqueakObject))
-                    return false;  //non-objects in to array
-                if (mutations.get(p) != null)
-                    return false; //repeated oops in to array
-                else
-                    mutations.put(p, fromPointers[i]);
-            }
-        }
-        for (int i = 0; i <= otMaxUsed; i++) {
-            // Now, for every object...
-            obj = (SqueakObject) objectTable[i].get();
-            if (obj != null) {
-                // mutate the class
-                mut = (SqueakObject) mutations.get(obj.sqClass);
-                if (mut != null)
-                    obj.sqClass = mut;
-                if ((body = obj.pointers) != null) {
-                    // and mutate body pointers
-                    for (int j = 0; j < body.length; j++) {
-                        ptr = body[j];
-                        mut = mutations.get(ptr);
-                        if (mut != null)
-                            body[j] = mut;
-                    }
-                }
-            }
-        }
-        return true;
-    }
-
-    //Enumeration...
-    SqueakObject nextInstance(int startingIndex, SqueakObject sqClass) {
-        //if sqClass is null, then find next object, else find next instance of sqClass
-        for (int i = startingIndex; i <= otMaxUsed; i++) {
-            // For every object...
-            SqueakObject obj = (SqueakObject) objectTable[i].get();
-            if (obj != null && (sqClass == null | obj.sqClass == sqClass)) {
-                lastOTindex = i; // save hint for next scan
-                return obj;
-            }
-        }
-        return vm.nilObj;  // Return nil if none found
-    }
-
-    int otIndexOfObject(SqueakObject lastObj) {
-        // hint: lastObj should be at lastOTindex
-        SqueakObject obj = (SqueakObject) objectTable[lastOTindex].get();
-        if (lastOTindex <= otMaxUsed && obj == lastObj) {
-            return lastOTindex;
-        } else {
-            for (int i = 0; i <= otMaxUsed; i++) {
-                // Alas no; have to find it again...
-                obj = (SqueakObject) objectTable[i].get();
-                if (obj == lastObj)
-                    return i;
-            }
-        }
-        return -1;  //should not happen
-    }
-
-    private final static int OTMinSize = 120000;
-    private final static int OTMaxSize = 640000;
-    private final static int OTGrowSize = 10000;
-
     public short registerObject(SqueakObject obj) {
-        //All enumerable objects must be registered
-        if ((otMaxUsed + 1) >= objectTable.length) {
-            if (!getMoreOops(OTGrowSize)) {
-                throw new RuntimeException("Object table has reached capacity");
-            }
-        }
-
-        objectTable[++otMaxUsed] = new WeakReference(obj);
-        lastHash = 13849 + (27181 * lastHash);
-        return (short) (lastHash & 0xFFF);
-    }
-
-    private boolean getMoreOops(int request) {
-        int nullCount;
-        int startingOtMaxUsed = otMaxUsed;
-        for (int i = 0; i < 5; i++) {
-            if (i == 2) {
-                vm.clearCaches(); //only flush caches after two tries
-            }
-            partialGC();
-            nullCount = startingOtMaxUsed - otMaxUsed;
-            if (nullCount >= request) {
-                return true;
-            }
-        }
-
-        // Sigh -- really need more space...
-        int n = objectTable.length;
-        if (n + request > OTMaxSize) {
-            fullGC();
-            return false;
-        }
-        System.out.println("Squeak: growing to " + (n + request) + " objects...");
-        WeakReference newTable[] = new WeakReference[n + request];
-        System.arraycopy(objectTable, 0, newTable, 0, n);
-        objectTable = newTable;
-        return true;
-    }
-
-    int partialGC() {
-        System.gc();
-        otMaxUsed = reclaimNullOTSlots(otMaxOld);
-        return spaceLeft();
-    }
-
-    int spaceLeft() {
-        return (int) Math.min(Runtime.getRuntime().freeMemory(), (long) SqueakVM.maxSmallInt);
-    }
-
-    int fullGC() {
-        vm.clearCaches();
-        for (int i = 0; i < 5; i++) partialGC();
-        otMaxUsed = reclaimNullOTSlots(0);
-        otMaxOld = Math.min(otMaxOld, otMaxUsed);
-        return spaceLeft();
-    }
-
-    private int reclaimNullOTSlots(int start) {
-        // Java GC will null out slots in the weak Object Table.
-        // This procedure compacts the occupied slots (retaining order),
-        // and returns a new value for otMaxUsed.
-        // If start=0, all are scanned (like full gc);
-        // if start=otMaxOld it will skip the old objects (like gcMost).
-        int oldOtMaxUsed = otMaxUsed;
-        int writePtr = start;
-        for (int readPtr = start; readPtr <= otMaxUsed; readPtr++)
-            if (objectTable[readPtr].get() != null)
-                objectTable[writePtr++] = objectTable[readPtr];
-        if (writePtr == start)
-            return oldOtMaxUsed;
-        return writePtr - 1;
+        return SqueakVM.objectMemory.registerObject(obj);
     }
 
     private void writeImage(DataOutput ser) throws IOException {
@@ -276,8 +123,6 @@ public class SqueakImage {
     private void readImage(DataInput in) throws IOException {
         //System.err.println("-3.0" + Double.doubleToLongBits(-3.0d));
         System.out.println("Start reading at " + System.currentTimeMillis());
-        objectTable = new WeakReference[OTMinSize];
-        otMaxUsed = -1;
         Hashtable oopMap = new Hashtable(30000);
         boolean doSwap = false;
         int version = intFromInputSwapped(in, doSwap);
@@ -292,7 +137,7 @@ public class SqueakImage {
         int endOfMemory = intFromInputSwapped(in, doSwap); //first unused location in heap
         int oldBaseAddr = intFromInputSwapped(in, doSwap); //object memory base address of image
         int specialObjectsOopInt = intFromInputSwapped(in, doSwap); //oop of array of special oops
-        lastHash = intFromInputSwapped(in, doSwap); //Should be loaded from, and saved to the image header
+        SqueakVM.objectMemory.setLastHash(intFromInputSwapped(in, doSwap)); //Should be loaded from, and saved to the image header
         int savedWindowSize = intFromInputSwapped(in, doSwap);
         int fullScreenFlag = intFromInputSwapped(in, doSwap);
         int extraVMMemory = intFromInputSwapped(in, doSwap);
@@ -339,7 +184,7 @@ public class SqueakImage {
             i = i + (nWords * 4);
 
             SqueakObject javaObject = new SqueakObject(new Integer(classInt), (short) format, (short) hash, data);
-            registerObject(javaObject);
+            SqueakVM.objectMemory.registerObject(javaObject);
             //oopMap is from old oops to new objects
             //Why can't we use ints as keys??...
             oopMap.put(new Integer(baseAddr + oldBaseAddr), javaObject);
@@ -350,21 +195,15 @@ public class SqueakImage {
         Integer[] ccArray = makeCCArray(oopMap, specialObjectsArray);
         int oldOop = specialObjectsArray.oldOopAt(Squeak.splOb_ClassFloat);
         SqueakObject floatClass = ((SqueakObject) oopMap.get(new Integer(oldOop)));
-        System.out.println("Start installs at " + System.currentTimeMillis());
-        for (int i = 0; i < otMaxUsed; i++) {
-            // Don't need oldBaseAddr here**
-            if (i == 39823) {
-                // TODO change index to watch Object installing in debug mode
-                int temp = 0;  // foobar statement, set break point here
-            }
-            ((SqueakObject) objectTable[i].get()).install(oopMap, ccArray, floatClass);
-        }
 
+        System.out.println("Start installs at " + System.currentTimeMillis());
+        SqueakVM.objectMemory.installObjects(oopMap, ccArray, floatClass);
         System.out.println("Done installing at " + System.currentTimeMillis());
+
         dumpObjOfImage();
         //Proper version of spl objs -- it's a good object
         specialObjectsArray = (SqueakObject) (oopMap.get(new Integer(specialObjectsOopInt)));
-        otMaxOld = otMaxUsed;
+
     }
 
     private int intFromInputSwapped(DataInput in, boolean doSwap) throws IOException {
@@ -404,8 +243,9 @@ public class SqueakImage {
      * Dump ALL Objects from image file for debugging purpose
      */
     private void dumpObjOfImage() {
-        for (int i = 0; i < objectTable.length; i++) {
-            WeakReference<Object> objectWeakReference = objectTable[i];
+        int length = SqueakVM.objectMemory.getObjectTableLength();
+        for (int i = 0; i < length; i++) {
+            WeakReference<Object> objectWeakReference = SqueakVM.objectMemory.getObjectAt(i);
             if (objectWeakReference != null && objectWeakReference.get() != null) {
 
                 Object real = objectWeakReference.get();
