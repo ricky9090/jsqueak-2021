@@ -105,7 +105,7 @@ public class ObjectMemory {
     public SqueakObject nextInstance(int startingIndex, SqueakObject sqClass) {
         //if sqClass is null, then find next object, else find next instance of sqClass
         final int length = objectTable.size();
-        for (int i = startingIndex; i <= length; i++) {
+        for (int i = startingIndex; i < length; i++) {
             // For every object...
             SqueakObject obj = (SqueakObject) objectTable.get(i).get();
             if (obj != null && (sqClass == null | obj.sqClass == sqClass)) {
