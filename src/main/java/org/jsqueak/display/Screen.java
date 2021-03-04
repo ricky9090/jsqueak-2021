@@ -174,6 +174,18 @@ public class Screen {
             // now it is 8bit depth, using 256 color model
             ColorModel colorModel = ScreenUtils.get256ColorModelV2();
             image = new BufferedImage(colorModel, raster, false, null);
+        }  else if (fDepth == 32) {
+            // Display depth 32
+            // Code snippet from PotatoVM
+            DirectColorModel colorModel = (DirectColorModel) ColorModel.getRGBdefault();
+
+            // SinglePixelPackedSampleModel is required by the color model
+            // also we need to specify the bitmasks for ARGB components again
+            SampleModel sm32 = new SinglePixelPackedSampleModel(buf.getDataType(), fExtent.width, fExtent.height,
+                    new int[]{colorModel.getRedMask(), colorModel.getGreenMask(), colorModel.getBlueMask(), colorModel.getAlphaMask()});
+            WritableRaster raster32 = Raster.createWritableRaster(sm32, buf, new Point(0, 0));
+
+            image = new BufferedImage(colorModel, raster32, true, null);
         } else {
             throw new RuntimeException("Unsupported color mode");
         }
