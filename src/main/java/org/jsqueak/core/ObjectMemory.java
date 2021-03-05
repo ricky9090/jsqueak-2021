@@ -79,7 +79,8 @@ public class ObjectMemory {
                     mutations.put(p, fromPointers[i]);
             }
         }
-        for (int i = 0; i <= objectTable.size(); i++) {
+        final int length = objectTable.size();
+        for (int i = 0; i < length; i++) {
             // Now, for every object...
             obj = (SqueakObject) objectTable.get(i).get();
             if (obj != null) {
