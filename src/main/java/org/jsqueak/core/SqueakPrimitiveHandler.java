@@ -670,7 +670,8 @@ public class SqueakPrimitiveHandler {
             (181 primPluckedSoundmixSampleCountintostartingAtleftVolrightVol)
             (182 primSampledSoundmixSampleCountintostartingAtleftVolrightVol)
             (183 primReverbSoundapplyReverbTostartingAtcount)
-            (184 188 primitiveFail)
+            (184 primLoopedSampledSoundmixSampleCountintostartingAtleftVolrightVol)
+            (185 188 primitiveFail)
             (189 primitiveSoundInsertSamples)
             (190 primitiveSoundStartRecording)
             (191 primitiveSoundStopRecording)
@@ -724,7 +725,11 @@ public class SqueakPrimitiveHandler {
             (239 primitiveSerialPortClose)
             (240 primitiveSerialPortWrite)
             (241 primitiveSerialPortRead)
-            (242 249 primitiveFail)
+            (242 primitiveFail)
+            (243 primStringtranslatefromtotable)
+            (244 primStringfindFirstInStringinSetstartingAt)
+            (245 primStringindexOfAsciiinStringstartingAt)
+            (246 249 primitiveFail)
              */
             case 230:
                 return primitiveYield(argCount); //yield for 10ms
@@ -785,8 +790,18 @@ public class SqueakPrimitiveHandler {
              */
 
             /*
+            "Experimental Asynchrous File Primitives"
+            (540 primitiveAsyncFileClose)
+            (541 primitiveAsyncFileOpen)
+            (542 primitiveAsyncFileReadResult)
+            (543 primitiveAsyncFileReadStart)
+            (544 primitiveAsyncFileWriteResult)
+            (545 primitiveAsyncFileWriteStart)
+             */
+
+            /*
             "Unassigned Primitives"
-            (540 700 primitiveFail)).
+            (546 700 primitiveFail)).
              */
             case 699:
                 primitiveDebug();
