@@ -241,7 +241,7 @@ public class BitBlt {
     }
 
     boolean ignoreSourceOrHalftone(Object formPointer) {
-        if (formPointer == vm.nilObj) {
+        if (formPointer == SqueakVM.nilObj) {
             return true;
         }
         if (combinationRule == 0) {
@@ -272,11 +272,11 @@ public class BitBlt {
         if (vm.isSTInteger(intOrFloatObj)) {
             return (Integer) intOrFloatObj;
         }
-        if (intOrFloatObj == vm.nilObj) {
+        if (intOrFloatObj == SqueakVM.nilObj) {
             return valueIfNil;
         }
         SqueakObject floatObj = (SqueakObject) intOrFloatObj;
-        if (floatObj.sqClass != vm.specialObjects[Squeak.splOb_ClassFloat]) {
+        if (floatObj.sqClass != SqueakVM.specialObjects[Squeak.splOb_ClassFloat]) {
             SqueakVM.INSTANCE.setSuccess(false);
             return 0;
         }
@@ -379,7 +379,7 @@ public class BitBlt {
         cmLookupTable = null;
 
         cmOop = InterpreterProxy.fetchPointerOfObject(BBColorMapIndex, bbObject);
-        if (cmOop == null || cmOop == vm.nilObj) {
+        if (cmOop == null || cmOop == SqueakVM.nilObj) {
             return true;
         }
 
@@ -402,7 +402,7 @@ public class BitBlt {
             cmShiftTable = loadColorMapShiftOrMaskFrom(InterpreterProxy.fetchPointerOfObject(0, cmOop));
             cmMaskTable = loadColorMapShiftOrMaskFrom(InterpreterProxy.fetchPointerOfObject(1, cmOop));
             oop = InterpreterProxy.fetchPointerOfObject(2, cmOop);
-            if (oop == null || oop == vm.nilObj) {
+            if (oop == null || oop == SqueakVM.nilObj) {
                 cmSize = 0;
             } else {
                 if (!InterpreterProxy.isWords(oop)) {
@@ -1108,7 +1108,7 @@ public class BitBlt {
 
 
     private int[] loadColorMapShiftOrMaskFrom(Object mapOop) {
-        if (mapOop == null || mapOop == vm.nilObj) {
+        if (mapOop == null || mapOop == SqueakVM.nilObj) {
             return null;
         }
         if (mapOop instanceof Integer) {

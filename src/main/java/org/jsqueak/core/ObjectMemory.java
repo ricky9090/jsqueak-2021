@@ -54,7 +54,10 @@ public class ObjectMemory {
 
     public boolean bulkBecome(Object[] fromPointers, Object[] toPointers, boolean twoWay) {
         int n = fromPointers.length;
-        Object p, ptr, body[], mut;
+        Object p;
+        Object ptr;
+        Object[] body;
+        Object mut;
         SqueakObject obj;
         if (n != toPointers.length)
             return false;
