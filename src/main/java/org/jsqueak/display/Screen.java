@@ -52,8 +52,8 @@ public class Screen {
     private JPanel contentView;
     private JLabel fDisplay;
     private JLabel background;
-    private byte fDisplayBits[];
-    private int fDisplayBitsInt[];
+    private byte[] fDisplayBits;
+    private int[] fDisplayBitsInt;
     private MouseStatus fMouseStatus;
     private KeyboardQueue fKeyboardQueue;
     private InputNotifyThread inputNotifyThread;
@@ -140,7 +140,7 @@ public class Screen {
         return fFrame;
     }
 
-    public void setBitsV2(int rawBits[], int depth) {
+    public void setBitsV2(int[] rawBits, int depth) {
         fDepth = depth;
         fDisplayBitsInt = rawBits;
         fDisplay.setIcon(createDisplayAdapterIntV2(fDisplayBitsInt));
@@ -159,7 +159,7 @@ public class Screen {
      *  </pre>
      * Now its same to be happy working with it :-)
      */
-    private Icon createDisplayAdapterIntV2(int storage[]) {
+    private Icon createDisplayAdapterIntV2(int[] storage) {
         System.out.println("createDisplayAdapter storage[] length: " + storage.length);
         System.out.println("createDisplayAdapter Extent.width: " + fExtent.width + " Extent.height: " + fExtent.height + " Depth: " + fDepth);
         DataBuffer buf = new DataBufferInt(storage, (fExtent.height * fExtent.width) * fDepth);
@@ -263,10 +263,10 @@ public class Screen {
     private final static byte C_WHITE = 0;
     private final static byte C_BLACK = 1;
     private final static byte C_TRANSPARENT = 2;
-    private final static byte kCursorComponentX[] = new byte[]{-1, 0, 0};
-    private final static byte kCursorComponentA[] = new byte[]{-1, -1, 0};
+    private final static byte[] kCursorComponentX = new byte[]{-1, 0, 0};
+    private final static byte[] kCursorComponentA = new byte[]{-1, -1, 0};
 
-    protected Image createCursorAdapter(byte bits[], byte mask[]) {
+    protected Image createCursorAdapter(byte[] bits, byte[] mask) {
         int bufSize = Squeak_CURSOR_HEIGHT * Squeak_CURSOR_WIDTH;
         DataBuffer buf = new DataBufferByte(new byte[bufSize], bufSize);
         // unpack samples and mask to bytes with transparency:
@@ -287,9 +287,9 @@ public class Screen {
         return new BufferedImage(cm, raster, true, null);
     }
 
-    protected byte[] extractBits(byte bitsAndMask[], int offset) {
+    protected byte[] extractBits(byte[] bitsAndMask, int offset) {
         final int n = bitsAndMask.length / 2;  // 32 bytes -> 8 bytes
-        byte answer[] = new byte[n];
+        byte[] answer = new byte[n];
         for (int i = 0; i < n; i++) {
             // convert incoming little-endian words to bytes:
             answer[i] = bitsAndMask[offset + i];
@@ -297,7 +297,7 @@ public class Screen {
         return answer;
     }
 
-    public void setCursor(byte imageAndMask[], int BWMask) {
+    public void setCursor(byte[] imageAndMask, int BWMask) {
         int n = imageAndMask.length;
         for (int i = 0; i < n / 2; i++) {
             imageAndMask[i] ^= BWMask; // reverse cursor bits all the time

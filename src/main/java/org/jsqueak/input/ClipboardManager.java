@@ -36,7 +36,6 @@ public class ClipboardManager {
         } else {
             target = clipboard;
         }
-        SqueakObject aStringObj = SqueakObject.createSTString(target);
-        return aStringObj;
+        return SqueakObject.createSTString(target);
     }
 }

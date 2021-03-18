@@ -77,13 +77,13 @@ import java.util.Map;
  * <p>
  * * Debug logging (printing stack traces) needs to be cleaned up.
  */
-class FileSystemPrimitives {
+public class FileSystemPrimitives {
     private final SqueakPrimitiveHandler fHandler;
 
     /**
      * Map<SqueakObject, RandomAccessFile> of files keyed by ID (Squeak String).
      */
-    private final Map fFiles = new HashMap();
+    private final Map<SqueakObject, RandomAccessFile> fFiles = new HashMap<>();
 
     public FileSystemPrimitives(SqueakPrimitiveHandler primitiveHandler) {
         fHandler = primitiveHandler;

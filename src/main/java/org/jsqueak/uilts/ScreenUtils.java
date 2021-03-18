@@ -52,19 +52,18 @@ public class ScreenUtils {
     }
 
     public static ColorModel getColorfulModel() {
-        Color colorArray[] = {Color.red, Color.orange, Color.yellow,
+        Color[] colorArray = {Color.red, Color.orange, Color.yellow,
                 Color.green, Color.blue, Color.magenta};
-        byte reds[] = new byte[colorArray.length];
-        byte greens[] = new byte[colorArray.length];
-        byte blues[] = new byte[colorArray.length];
+        byte[] reds = new byte[colorArray.length];
+        byte[] greens = new byte[colorArray.length];
+        byte[] blues = new byte[colorArray.length];
         for (int i = 0; i < colorArray.length; i++) {
             reds[i] = (byte) colorArray[i].getRed();
             greens[i] = (byte) colorArray[i].getGreen();
             blues[i] = (byte) colorArray[i].getBlue();
         }
 
-        ColorModel colorModel = new IndexColorModel(8, colorArray.length, reds, greens, blues);
-        return colorModel;
+        return new IndexColorModel(8, colorArray.length, reds, greens, blues);
     }
 
     public static ColorModel getColorfulModelV3() {
