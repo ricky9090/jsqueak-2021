@@ -1334,7 +1334,7 @@ public class SqueakPrimitiveHandler {
             return -1; //not indexable
         }
         if (fmt == 3 && vm.isContext(sqObj)) {
-            return sqObj.getPointerI(Squeak.Context_stackPointer).intValue();
+            return sqObj.getPointerI(Squeak.Context_stackPointer);
         }
         if (fmt < 6) {
             return sqObj.pointersSize() - sqObj.instSize(); // pointers
@@ -1491,7 +1491,7 @@ public class SqueakPrimitiveHandler {
         if (!vm.isSTInteger(blockArgCount)) {
             return false;
         }
-        if ((((Integer) blockArgCount).intValue() != argCount)) {
+        if (((Integer) blockArgCount != argCount)) {
             return false;
         }
         if (block.getPointer(Squeak.BlockContext_caller) != SqueakVM.nilObj) {
@@ -1500,7 +1500,7 @@ public class SqueakPrimitiveHandler {
         System.arraycopy((Object) vm.activeContext.pointers, vm.sp - argCount + 1, (Object) block.pointers, Squeak.Context_tempFrameStart, argCount);
         Integer initialIP = block.getPointerI(Squeak.BlockContext_initialIP);
         block.setPointer(Squeak.Context_instructionPointer, initialIP);
-        block.setPointer(Squeak.Context_stackPointer, new Integer(argCount));
+        block.setPointer(Squeak.Context_stackPointer, argCount);
         block.setPointer(Squeak.BlockContext_caller, vm.activeContext);
         vm.popN(argCount + 1);
         vm.newActiveContext(block);
@@ -1514,7 +1514,7 @@ public class SqueakPrimitiveHandler {
             return SqueakVM.nilObj;
         }
 
-        return new Integer(((SqueakObject) rcvr).hash);
+        return (int) ((SqueakObject) rcvr).hash;
     }
 
     private Object setLowSpaceThreshold() {
@@ -1571,7 +1571,7 @@ public class SqueakPrimitiveHandler {
             return false;
         }
 
-        int excessSignals = sema.getPointerI(Squeak.Semaphore_excessSignals).intValue();
+        int excessSignals = sema.getPointerI(Squeak.Semaphore_excessSignals);
         if (excessSignals > 0) {
             sema.setPointer(Squeak.Semaphore_excessSignals, SqueakVM.smallFromInt(excessSignals - 1));
         } else {
@@ -1595,7 +1595,7 @@ public class SqueakPrimitiveHandler {
     void synchronousSignal(SqueakObject sema) {
         if (isEmptyList(sema)) {
             //no process is waiting on this semaphore"
-            int excessSignals = sema.getPointerI(Squeak.Semaphore_excessSignals).intValue();
+            int excessSignals = sema.getPointerI(Squeak.Semaphore_excessSignals);
             sema.setPointer(Squeak.Semaphore_excessSignals, SqueakVM.smallFromInt(excessSignals + 1));
         } else {
             resume(removeFirstLinkOfList(sema));
@@ -1605,8 +1605,8 @@ public class SqueakPrimitiveHandler {
 
     private void resume(SqueakObject newProc) {
         SqueakObject activeProc = getScheduler().getPointerNI(Squeak.ProcSched_activeProcess);
-        int activePriority = activeProc.getPointerI(Squeak.Proc_priority).intValue();
-        int newPriority = newProc.getPointerI(Squeak.Proc_priority).intValue();
+        int activePriority = activeProc.getPointerI(Squeak.Proc_priority);
+        int newPriority = newProc.getPointerI(Squeak.Proc_priority);
         if (newPriority > activePriority) {
             putToSleep(activeProc);
             transferTo(newProc);
@@ -1617,7 +1617,7 @@ public class SqueakPrimitiveHandler {
 
     private void putToSleep(SqueakObject aProcess) {
         //Save the given process on the scheduler process list for its priority.
-        int priority = aProcess.getPointerI(Squeak.Proc_priority).intValue();
+        int priority = aProcess.getPointerI(Squeak.Proc_priority);
         SqueakObject processLists = getScheduler().getPointerNI(Squeak.ProcSched_processLists);
         SqueakObject processList = processLists.getPointerNI(priority - 1);
         linkProcessToList(aProcess, processList);

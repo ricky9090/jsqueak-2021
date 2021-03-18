@@ -136,7 +136,7 @@ public class KeyboardQueue implements KeyListener {
     private void addToQueue(char keyChar) {
         synchronized (lockObj) {
             if (fCharQueue.size() < TYPEAHEAD_LIMIT) {
-                fCharQueue.add(new Character(keyChar));
+                fCharQueue.add(keyChar);
             }
         }
         // move to dispatching thread
@@ -174,7 +174,7 @@ public class KeyboardQueue implements KeyListener {
     }
 
     private static int keycode(Character c) {
-        return c.charValue() & 255;
+        return c & 255;
     }
 
     // endregion

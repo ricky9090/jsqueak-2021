@@ -123,7 +123,7 @@ public class SqueakImage {
     private void readImage(DataInput in) throws IOException {
         //System.err.println("-3.0" + Double.doubleToLongBits(-3.0d));
         System.out.println("Start reading at " + System.currentTimeMillis());
-        Hashtable oopMap = new Hashtable(30000);
+        Hashtable<Object, Object> oopMap = new Hashtable<>(30000);
         boolean doSwap = false;
         int version = intFromInputSwapped(in, doSwap);
         if (version != 6502) {
@@ -183,18 +183,18 @@ public class SqueakImage {
                 data[j] = intFromInputSwapped(in, doSwap);
             i = i + (nWords * 4);
 
-            SqueakObject javaObject = new SqueakObject(new Integer(classInt), (short) format, (short) hash, data);
+            SqueakObject javaObject = new SqueakObject(classInt, (short) format, (short) hash, data);
             SqueakVM.objectMemory.registerObject(javaObject);
             //oopMap is from old oops to new objects
             //Why can't we use ints as keys??...
-            oopMap.put(new Integer(baseAddr + oldBaseAddr), javaObject);
+            oopMap.put(baseAddr + oldBaseAddr, javaObject);
         }
 
         //Temp version of spl objs needed for makeCCArray; not a good object yet
-        specialObjectsArray = (SqueakObject) (oopMap.get(new Integer(specialObjectsOopInt)));
+        specialObjectsArray = (SqueakObject) (oopMap.get(specialObjectsOopInt));
         Integer[] ccArray = makeCCArray(oopMap, specialObjectsArray);
         int oldOop = specialObjectsArray.oldOopAt(Squeak.splOb_ClassFloat);
-        SqueakObject floatClass = ((SqueakObject) oopMap.get(new Integer(oldOop)));
+        SqueakObject floatClass = ((SqueakObject) oopMap.get(oldOop));
 
         System.out.println("Start installs at " + System.currentTimeMillis());
         SqueakVM.objectMemory.installObjects(oopMap, ccArray, floatClass);
@@ -202,7 +202,7 @@ public class SqueakImage {
 
         dumpObjOfImage();
         //Proper version of spl objs -- it's a good object
-        specialObjectsArray = (SqueakObject) (oopMap.get(new Integer(specialObjectsOopInt)));
+        specialObjectsArray = (SqueakObject) (oopMap.get(specialObjectsOopInt));
 
     }
 
@@ -228,13 +228,13 @@ public class SqueakImage {
         return outgoing;
     }
 
-    private Integer[] makeCCArray(Hashtable oopMap, SqueakObject splObs) {
+    private Integer[] makeCCArray(Hashtable<Object, Object> oopMap, SqueakObject splObs) {
         //Makes an aray of the complact classes as oldOops (still need to be mapped)
         int oldOop = splObs.oldOopAt(Squeak.splOb_CompactClasses);
-        SqueakObject compactClassesArray = ((SqueakObject) oopMap.get(new Integer(oldOop)));
+        SqueakObject compactClassesArray = ((SqueakObject) oopMap.get(oldOop));
         Integer[] ccArray = new Integer[31];
         for (int i = 0; i < 31; i++) {
-            ccArray[i] = new Integer(compactClassesArray.oldOopAt(i));
+            ccArray[i] = compactClassesArray.oldOopAt(i);
         }
         return ccArray;
     }

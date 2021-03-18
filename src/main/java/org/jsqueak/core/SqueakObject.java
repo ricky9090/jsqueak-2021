@@ -185,16 +185,16 @@ public class SqueakObject {
 
     // isn't this slow?'
     double getFloatBits() {
-        return ((Double) bits).doubleValue();
+        return (Double) bits;
     }
 
     void setFloatBits(double value) {
-        bits = new Double(value);
+        bits = value;
     }
 
     //CompiledMethods
     public int methodHeader() {
-        return ((Integer) getPointer(0)).intValue();
+        return (Integer) getPointer(0);
     }
 
     public int methodNumLits() {
@@ -246,9 +246,9 @@ public class SqueakObject {
     }
 
     //Methods below here are only used for reading the Squeak image format
-    public void install(Hashtable oopMap, Integer[] ccArray, SqueakObject floatClass) {
+    public void install(Hashtable<Object, Object> oopMap, Integer[] ccArray, SqueakObject floatClass) {
         //Install this object by decoding format, and rectifying pointers
-        int ccInt = ((Integer) sqClass).intValue();
+        int ccInt = (Integer) sqClass;
         if ((ccInt > 0) && (ccInt < 32)) {
             sqClass = oopMap.get(ccArray[ccInt - 1]);
         } else {
@@ -294,7 +294,7 @@ public class SqueakObject {
         }
     }
 
-    private Object[] decodePointers(int nWords, int[] theBits, Hashtable oopMap) {
+    private Object[] decodePointers(int nWords, int[] theBits, Hashtable<Object, Object> oopMap) {
         //Convert small ints and look up object pointers in oopMap
         Object[] ptrs = new Object[nWords];
         for (int i = 0; i < nWords; i++) {
@@ -302,7 +302,7 @@ public class SqueakObject {
             if ((oldOop & 1) == 1) {
                 ptrs[i] = SqueakVM.smallFromInt(oldOop >> 1);
             } else {
-                ptrs[i] = oopMap.get(new Integer(oldOop));
+                ptrs[i] = oopMap.get(oldOop);
             }
         }
         return ptrs;

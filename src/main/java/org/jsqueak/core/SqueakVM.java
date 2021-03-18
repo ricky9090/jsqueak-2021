@@ -99,7 +99,7 @@ public class SqueakVM {
     public static void initSmallIntegerCache() {
         cachedInts = new Integer[maxCachedInt - minCachedInt + 1];
         for (int i = minCachedInt; i <= maxCachedInt; i++)
-            cachedInts[i - minCachedInt] = new Integer(i);
+            cachedInts[i - minCachedInt] = i;
     }
 
     public static class MethodCacheEntry {
@@ -902,7 +902,7 @@ public class SqueakVM {
 
     public void sendSpecial(int lobits) {
         send((SqueakObject) specialSelectors[lobits * 2],
-                ((Integer) specialSelectors[(lobits * 2) + 1]).intValue(),
+                (Integer) specialSelectors[(lobits * 2) + 1],
                 false);   //specialSelectors is  {...sel,nArgs,sel,nArgs,...)
     }
 
@@ -1554,7 +1554,7 @@ public class SqueakVM {
             return "null";
         }
         if (isSTInteger(obj)) {
-            return "=" + ((Integer) obj).intValue();
+            return "=" + obj;
         } else {
             return ((SqueakObject) obj).asString();
         }
