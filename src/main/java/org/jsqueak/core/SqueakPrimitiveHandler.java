@@ -299,7 +299,7 @@ public class SqueakPrimitiveHandler {
             case 10:
                 return popNandPushIntIfOK(2, SqueakVM.quickDivide(stackInteger(1), stackInteger(0)));  // Integer.divide /  (fails unless exact exact)
             case 11:
-                return false; //popNandPushIntIfOK(2,doMod(stackInteger(1),stackInteger(0)));  // Integer.mod \\
+                return popNandPushIntIfOK(2,SqueakVM.mod(stackInteger(1),stackInteger(0)));  // Integer.mod \\
             case 12:
                 return popNandPushIntIfOK(2, SqueakVM.div(stackInteger(1), stackInteger(0)));  // Integer.div //
             case 13:
@@ -2110,7 +2110,7 @@ public class SqueakPrimitiveHandler {
         if (!(-1073741824.0 <= floatVal) && (floatVal <= 1073741823.0)) {
             return false;
         }
-        vm.popNandPush(1, SqueakVM.smallFromInt((new Double(floatVal)).intValue())); //**must be a better way
+        vm.popNandPush(1, SqueakVM.smallFromInt((Double.valueOf(floatVal)).intValue())); //**must be a better way
         return true;
     }
 
