@@ -64,7 +64,6 @@ public class Starter {
      * @param args first arg may specify image file name
      */
     public static void boot(String[] args) throws IOException, NullPointerException, java.lang.ArrayIndexOutOfBoundsException {
-        SqueakVM.initSmallIntegerCache();
         SqueakImage img = args.length > 0 ? locateSavedImage(args[1])
                 : locateStartableImage();
         SqueakVM vm = new SqueakVM(img);

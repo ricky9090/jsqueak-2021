@@ -48,8 +48,6 @@ public class SqueakVM {
     public static int minCachedInt = -2000;
     public static int maxCachedInt = 4000;
 
-    static Integer[] cachedInts; // reusable SmallIntegers save space, reduce GC traffic
-
     // static state:
     public static SqueakImage image;
     public static SqueakPrimitiveHandler primHandler;
@@ -96,11 +94,6 @@ public class SqueakVM {
     // Component of VM
     public final ClipboardManager clipboardManager = new ClipboardManager();
 
-    public static void initSmallIntegerCache() {
-        cachedInts = new Integer[maxCachedInt - minCachedInt + 1];
-        for (int i = minCachedInt; i <= maxCachedInt; i++)
-            cachedInts[i - minCachedInt] = i;
-    }
 
     public static class MethodCacheEntry {
         SqueakObject lkupClass;
@@ -261,9 +254,7 @@ public class SqueakVM {
     }
 
     public static Integer smallFromInt(int raw) {
-        if (raw >= minCachedInt && raw <= maxCachedInt) {
-            return cachedInts[raw - minCachedInt];
-        }
+        // canBeSTInteger
         if (raw >= minSmallInt && raw <= maxSmallInt) {
             return raw;
         }
