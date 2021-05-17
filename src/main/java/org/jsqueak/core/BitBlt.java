@@ -260,7 +260,7 @@ public class BitBlt {
     }
 
     int checkIntValue(Object obj) {
-        if (vm.isSTInteger(obj)) {
+        if (InterpreterHelper.isSTInteger(obj)) {
             return (Integer) obj;
         }
         SqueakVM.INSTANCE.setSuccess(false);
@@ -269,7 +269,7 @@ public class BitBlt {
 
     int checkIntOrFloatIfNil(Object intOrFloatObj, int valueIfNil) {
         double floatValue;
-        if (vm.isSTInteger(intOrFloatObj)) {
+        if (InterpreterHelper.isSTInteger(intOrFloatObj)) {
             return (Integer) intOrFloatObj;
         }
         if (intOrFloatObj == SqueakVM.nilObj) {
@@ -293,17 +293,17 @@ public class BitBlt {
         if (noHalftone) {
             return true;
         }
-        if (vm.isSTInteger(aForm)) {
+        if (InterpreterHelper.isSTInteger(aForm)) {
             return false;
         }
 
         // retrofit code style, refer to SqueakJS and Squeak itself
         SqueakObject bitsObject;
-        if (InterpreterProxy.isPointers(aForm) && InterpreterProxy.SIZEOF(aForm) >= 4) {
+        if (InterpreterHelper.isPointers(aForm) && InterpreterHelper.SIZEOF(aForm) >= 4) {
             // Old-style 32xN monochrome halftone Forms
-            bitsObject = InterpreterProxy.fetchPointerOfObject(0, aForm);
+            bitsObject = InterpreterHelper.fetchPointerOfObject(0, aForm);
             halftoneBits = (int[]) bitsObject.bits;
-            halftoneHeight = InterpreterProxy.fetchIntegerOfObject(2, aForm);
+            halftoneHeight = InterpreterHelper.fetchIntegerOfObject(2, aForm);
             if (halftoneBits == null) {
                 return false;
             }
@@ -312,7 +312,7 @@ public class BitBlt {
             }
         } else {
             // New spec accepts, basically, a word array
-            if (!(!InterpreterProxy.isPointers(aForm) && InterpreterProxy.isWords(aForm))) {
+            if (!(!InterpreterHelper.isPointers(aForm) && InterpreterHelper.isWords(aForm))) {
                 return false;
             }
             halftoneBits = (int[]) ((SqueakObject) aForm).bits;
@@ -378,7 +378,7 @@ public class BitBlt {
         cmMaskTable = null;
         cmLookupTable = null;
 
-        cmOop = InterpreterProxy.fetchPointerOfObject(BBColorMapIndex, bbObject);
+        cmOop = InterpreterHelper.fetchPointerOfObject(BBColorMapIndex, bbObject);
         if (cmOop == null || cmOop == SqueakVM.nilObj) {
             return true;
         }
@@ -386,29 +386,29 @@ public class BitBlt {
         // even if identity or somesuch - may be cleared later
 
         cmFlags = Const.ColorMapPresent;
-        if (InterpreterProxy.isWords(cmOop)) {
+        if (InterpreterHelper.isWords(cmOop)) {
 
             // This is an old-style color map (indexed only, with implicit RGBA conversion)
 
-            cmSize = InterpreterProxy.SIZEOF(cmOop);
+            cmSize = InterpreterHelper.SIZEOF(cmOop);
             cmLookupTable = (int[]) ((SqueakObject) cmOop).bits;
             oldStyle = true;
         } else {
             // A new-style color map (fully qualified)
 
-            if (!(InterpreterProxy.isPointers(cmOop) && (InterpreterProxy.SIZEOF(cmOop) >= 3))) {
+            if (!(InterpreterHelper.isPointers(cmOop) && (InterpreterHelper.SIZEOF(cmOop) >= 3))) {
                 return false;
             }
-            cmShiftTable = loadColorMapShiftOrMaskFrom(InterpreterProxy.fetchPointerOfObject(0, cmOop));
-            cmMaskTable = loadColorMapShiftOrMaskFrom(InterpreterProxy.fetchPointerOfObject(1, cmOop));
-            oop = InterpreterProxy.fetchPointerOfObject(2, cmOop);
+            cmShiftTable = loadColorMapShiftOrMaskFrom(InterpreterHelper.fetchPointerOfObject(0, cmOop));
+            cmMaskTable = loadColorMapShiftOrMaskFrom(InterpreterHelper.fetchPointerOfObject(1, cmOop));
+            oop = InterpreterHelper.fetchPointerOfObject(2, cmOop);
             if (oop == null || oop == SqueakVM.nilObj) {
                 cmSize = 0;
             } else {
-                if (!InterpreterProxy.isWords(oop)) {
+                if (!InterpreterHelper.isWords(oop)) {
                     return false;
                 }
-                cmSize = InterpreterProxy.SIZEOF(oop);
+                cmSize = InterpreterHelper.SIZEOF(oop);
                 cmLookupTable = (int[]) ((SqueakObject) oop).bits;
             }
             cmFlags = cmFlags | Const.ColorMapNewStyle;
@@ -627,7 +627,7 @@ public class BitBlt {
     }
 
     int halftoneAt(int index) {
-        return halftoneBits[SqueakVM.mod(index, halftoneHeight)];
+        return halftoneBits[InterpreterHelper.mod(index, halftoneHeight)];
     }
 
     int srcLongAt(int index) {
@@ -1112,11 +1112,11 @@ public class BitBlt {
             return null;
         }
         if (mapOop instanceof Integer) {
-            InterpreterProxy.primitiveFail();
+            InterpreterHelper.primitiveFail();
             return null;
         }
-        if (!(InterpreterProxy.isWords(mapOop) && (InterpreterProxy.SIZEOF(mapOop) == 4))) {
-            InterpreterProxy.primitiveFail();
+        if (!(InterpreterHelper.isWords(mapOop) && (InterpreterHelper.SIZEOF(mapOop) == 4))) {
+            InterpreterHelper.primitiveFail();
             return null;
         }
         return (int[]) ((SqueakObject) mapOop).bits;
@@ -1171,18 +1171,18 @@ public class BitBlt {
 
             /* Mask for extracting a color part of the source */
 
-            mask = (InterpreterProxy.SHL(1, targetBits)) - 1;
-            masks[Const.RedIndex] = (InterpreterProxy.SHL(mask, ((srcBits * 2) - deltaBits)));
-            masks[Const.GreenIndex] = (InterpreterProxy.SHL(mask, (srcBits - deltaBits)));
-            masks[Const.BlueIndex] = (InterpreterProxy.SHL(mask, (0 - deltaBits)));
+            mask = (InterpreterHelper.SHL(1, targetBits)) - 1;
+            masks[Const.RedIndex] = (InterpreterHelper.SHL(mask, ((srcBits * 2) - deltaBits)));
+            masks[Const.GreenIndex] = (InterpreterHelper.SHL(mask, (srcBits - deltaBits)));
+            masks[Const.BlueIndex] = (InterpreterHelper.SHL(mask, (0 - deltaBits)));
             masks[Const.AlphaIndex] = 0;
         } else {
 
             /* Mask for extracting a color part of the source */
 
-            mask = (InterpreterProxy.SHL(1, srcBits)) - 1;
-            masks[Const.RedIndex] = (InterpreterProxy.SHL(mask, (srcBits * 2)));
-            masks[Const.GreenIndex] = (InterpreterProxy.SHL(mask, srcBits));
+            mask = (InterpreterHelper.SHL(1, srcBits)) - 1;
+            masks[Const.RedIndex] = (InterpreterHelper.SHL(mask, (srcBits * 2)));
+            masks[Const.GreenIndex] = (InterpreterHelper.SHL(mask, srcBits));
             masks[Const.BlueIndex] = mask;
         }
         shifts[Const.RedIndex] = (deltaBits * 3);
@@ -1225,13 +1225,13 @@ public class BitBlt {
 
             /* Transfer mask */
 
-            mask = (InterpreterProxy.SHL(1, nBitsIn)) - 1;
-            srcPix = InterpreterProxy.SHL(sourcePixel, d);
-            mask = InterpreterProxy.SHL(mask, d);
+            mask = (InterpreterHelper.SHL(1, nBitsIn)) - 1;
+            srcPix = InterpreterHelper.SHL(sourcePixel, d);
+            mask = InterpreterHelper.SHL(mask, d);
             destPix = srcPix & mask;
-            mask = InterpreterProxy.SHL(mask, nBitsOut);
-            srcPix = InterpreterProxy.SHL(srcPix, d);
-            return (destPix + (srcPix & mask)) + ((InterpreterProxy.SHL(srcPix, d)) & (InterpreterProxy.SHL(mask, nBitsOut)));
+            mask = InterpreterHelper.SHL(mask, nBitsOut);
+            srcPix = InterpreterHelper.SHL(srcPix, d);
+            return (destPix + (srcPix & mask)) + ((InterpreterHelper.SHL(srcPix, d)) & (InterpreterHelper.SHL(mask, nBitsOut)));
         } else {
 
             /* Compress to fewer bits by truncation */
@@ -1260,12 +1260,12 @@ public class BitBlt {
 
             /* Transfer mask */
 
-            mask = (InterpreterProxy.SHL(1, nBitsOut)) - 1;
-            srcPix = InterpreterProxy.SHR(sourcePixel, d);
+            mask = (InterpreterHelper.SHL(1, nBitsOut)) - 1;
+            srcPix = InterpreterHelper.SHR(sourcePixel, d);
             destPix = srcPix & mask;
-            mask = InterpreterProxy.SHL(mask, nBitsOut);
-            srcPix = InterpreterProxy.SHR(srcPix, d);
-            destPix = (destPix + (srcPix & mask)) + ((InterpreterProxy.SHR(srcPix, d)) & (InterpreterProxy.SHL(mask, nBitsOut)));
+            mask = InterpreterHelper.SHL(mask, nBitsOut);
+            srcPix = InterpreterHelper.SHR(srcPix, d);
+            destPix = (destPix + (srcPix & mask)) + ((InterpreterHelper.SHR(srcPix, d)) & (InterpreterHelper.SHL(mask, nBitsOut)));
             if (destPix == 0) {
                 return 1;
             }
@@ -1498,7 +1498,7 @@ public class BitBlt {
                 for (i = 1; i <= destPPW; i++) {
                     mapIndex = shiftWord & pixMask;
                     tallyMapAtput(mapIndex, tallyMapAt(mapIndex) + 1);
-                    shiftWord = InterpreterProxy.SHR(shiftWord, destDepth);
+                    shiftWord = InterpreterHelper.SHR(shiftWord, destDepth);
                 }
                 return destinationWord;
             }

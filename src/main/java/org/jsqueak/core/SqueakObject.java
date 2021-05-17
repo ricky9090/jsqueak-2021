@@ -300,7 +300,7 @@ public class SqueakObject {
         for (int i = 0; i < nWords; i++) {
             int oldOop = theBits[i];
             if ((oldOop & 1) == 1) {
-                ptrs[i] = SqueakVM.smallFromInt(oldOop >> 1);
+                ptrs[i] = InterpreterHelper.smallFromInt(oldOop >> 1);
             } else {
                 ptrs[i] = oopMap.get(oldOop);
             }

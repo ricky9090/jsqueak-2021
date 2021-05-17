@@ -203,7 +203,7 @@ public class SqueakVM {
 
     public void fetchContextRegisters(SqueakObject ctxt) {
         Object meth = ctxt.getPointer(Squeak.Context_method);
-        if (isSTInteger(meth)) {
+        if (InterpreterHelper.isSTInteger(meth)) {
             //if the Method field is an integer, activeCntx is a block context
             homeContext = (SqueakObject) ctxt.getPointer(Squeak.BlockContext_home);
             meth = homeContext.getPointerNI(Squeak.Context_method);
@@ -233,7 +233,7 @@ public class SqueakVM {
     public Integer encodeSqueakPC(int intPC, SqueakObject aMethod) {
         // Squeak pc is offset by header and literals
         // and 1 for z-rel addressing, and 1 for pre-increment of fetch
-        return smallFromInt(intPC + (((aMethod.methodNumLits() + 1) * 4) + 1 + 1));
+        return InterpreterHelper.smallFromInt(intPC + (((aMethod.methodNumLits() + 1) * 4) + 1 + 1));
     }
 
     public int decodeSqueakPC(Integer squeakPC, SqueakObject aMethod) {
@@ -242,30 +242,12 @@ public class SqueakVM {
 
     public Integer encodeSqueakSP(int intSP) {
         // sp is offset by tempFrameStart, -1 for z-rel addressing
-        return smallFromInt(intSP - (Squeak.Context_tempFrameStart - 1));
+        return InterpreterHelper.smallFromInt(intSP - (Squeak.Context_tempFrameStart - 1));
     }
 
     public int decodeSqueakSP(Integer squeakPC) {
         return squeakPC + (Squeak.Context_tempFrameStart - 1);
     }
-
-    //SmallIntegers are stored as Java (boxed)Integers
-    public static boolean canBeSTInteger(int anInt) {
-        return (anInt >= minSmallInt) && (anInt <= maxSmallInt);
-    }
-
-    public static Integer smallFromInt(int raw) {
-        // canBeSTInteger
-        if (raw >= minSmallInt && raw <= maxSmallInt) {
-            return raw;
-        }
-        return null;
-    }
-
-    /*@Deprecated
-    public static boolean isSmallInt(Object obj) {
-        return obj instanceof Integer;
-    }*/
 
     /*@Deprecated
     public static int intFromSmall(Integer smallInt) {
@@ -273,20 +255,9 @@ public class SqueakVM {
         return smallInt.intValue();
     }*/
 
-    public boolean isSTInteger(Object obj) {
-        return obj instanceof Integer;
-    }
-
-    public boolean isSTFloat(Object obj) {
-        if (isSTInteger(obj)) {
-            return false;
-        }
-        return ((SqueakObject) obj).getSqClass() == specialObjects[Squeak.splOb_ClassFloat];
-    }
-
     // MEMORY ACCESS:
     public SqueakObject getClass(Object obj) {
-        if (isSTInteger(obj))
+        if (InterpreterHelper.isSTInteger(obj))
             return getSpecialObject(Squeak.splOb_ClassInteger);
         return ((SqueakObject) obj).getSqClass();
     }
@@ -581,7 +552,7 @@ public class SqueakVM {
         if (!success) {
             return false;
         }
-        Object smallInt = smallFromInt(intResult);
+        Object smallInt = InterpreterHelper.smallFromInt(intResult);
         if (smallInt != null) {
             popNandPush(2, smallInt);
             return true;
@@ -623,58 +594,7 @@ public class SqueakVM {
         return true;
     }
 
-    // Java rounds toward zero, we also need towards -infinity, so...
-    public static int div(int rcvr, int arg) {
-        // do this without floats asap
-        if (arg == 0) {
-            return nonSmallInt;  // fail if divide by zero
-        }
-        return (int) Math.floor((double) rcvr / arg);
-    }
 
-    public static int quickDivide(int rcvr, int arg) {
-        // only handles exact case
-        if (arg == 0) {
-            return nonSmallInt;  // fail if divide by zero
-        }
-        int result = rcvr / arg;
-        if (result * arg == rcvr) {
-            return result;
-        }
-        return nonSmallInt;   // fail if result is not exact
-    }
-
-    public static int mod(int rcvr, int arg) {
-        if (arg == 0) {
-            return nonSmallInt;  // fail if divide by zero
-        }
-        return rcvr - div(rcvr, arg) * arg;
-    }
-
-    public static int safeMultiply(int multiplicand, int multiplier) {
-        int product = multiplier * multiplicand;
-        //check for overflow by seeing if computation is reversible
-        // FIXME
-        if (multiplier == 0) {
-            return product;
-        }
-        if ((product / multiplier) == multiplicand) {
-            return product;
-        }
-        return nonSmallInt;   //non-small result will cause failure
-    }
-
-    public static int safeShift(int bitsToShift, int shiftCount) {
-        if (shiftCount < 0) {
-            return bitsToShift >> -shiftCount; //OK ot lose bits shifting right
-        }
-        //check for lost bits by seeing if computation is reversible
-        int shifted = bitsToShift << shiftCount;
-        if ((shifted >>> shiftCount) == bitsToShift) {
-            return shifted;
-        }
-        return nonSmallInt;   //non-small result will cause failure
-    }
 
     public void send(SqueakObject selector, int argCount, boolean doSuper) {
         SqueakObject newMethod;
@@ -843,7 +763,7 @@ public class SqueakVM {
                     popNandPush(1, nilObj); //return nil
                     return true;
                 }
-                popNandPush(1, smallFromInt(primIndex - 261)); //return -1...2
+                popNandPush(1, InterpreterHelper.smallFromInt(primIndex - 261)); //return -1...2
                 return true;
             }
         } else {
@@ -891,7 +811,7 @@ public class SqueakVM {
     public boolean primitivePerformWithArgs(SqueakObject lookupClass) {
         Object rcvr = stackValue(2);
         SqueakObject selector = (SqueakObject) stackValue(1);
-        if (isSTInteger(stackValue(0))) {
+        if (InterpreterHelper.isSTInteger(stackValue(0))) {
             return false;
         }
         SqueakObject args = (SqueakObject) stackValue(0);
@@ -1076,7 +996,7 @@ public class SqueakVM {
         if (obj == null) {
             return "null";
         }
-        if (isSTInteger(obj)) {
+        if (InterpreterHelper.isSTInteger(obj)) {
             return "=" + obj;
         } else {
             return ((SqueakObject) obj).asString();
@@ -1099,7 +1019,7 @@ public class SqueakVM {
         return new FormCache();
     }
 
-    public class FormCache {
+    public static class FormCache {
         SqueakObject squeakForm;
         int[] bits;
         int width;
@@ -1122,7 +1042,7 @@ public class SqueakVM {
                 return true;
             }
             squeakForm = null; //Marks this as failed until very end...
-            if (isSTInteger(aForm)) {
+            if (InterpreterHelper.isSTInteger(aForm)) {
                 return false;
             }
             Object[] formPointers = ((SqueakObject) aForm).pointers;
@@ -1130,7 +1050,7 @@ public class SqueakVM {
                 return false;
             }
             for (int i = 1; i < 4; i++) {
-                if (!isSTInteger(formPointers[i])) {
+                if (!InterpreterHelper.isSTInteger(formPointers[i])) {
                     return false;
                 }
             }
@@ -1141,7 +1061,7 @@ public class SqueakVM {
             if ((width < 0) || (height < 0)) {
                 return false;
             }
-            if (bitsObject == nilObj || isSTInteger(bitsObject)) {
+            if (bitsObject == nilObj || InterpreterHelper.isSTInteger(bitsObject)) {
                 return false;
             }
             msb = depth > 0;
@@ -1239,19 +1159,19 @@ public class SqueakVM {
     };
 
     private final BytecodeExcutor pushConstantMinusOneBytecode = (bytecode) -> {
-        push(smallFromInt(-1));
+        push(InterpreterHelper.smallFromInt(-1));
     };
 
     private final BytecodeExcutor pushConstantZeroBytecode = (bytecode) -> {
-        push(smallFromInt(0));
+        push(InterpreterHelper.smallFromInt(0));
     };
 
     private final BytecodeExcutor pushConstantOneBytecode = (bytecode) -> {
-        push(smallFromInt(1));
+        push(InterpreterHelper.smallFromInt(1));
     };
 
     private final BytecodeExcutor pushConstantTwoBytecode = (bytecode) -> {
-        push(smallFromInt(2));
+        push(InterpreterHelper.smallFromInt(2));
     };
 
     private final BytecodeExcutor returnReceiver = (bytecode) -> {
@@ -1404,21 +1324,21 @@ public class SqueakVM {
 
     private final BytecodeExcutor bytecodePrimMultiply = (bytecode) -> {
         success = true;
-        if (!pop2AndPushIntResult(safeMultiply(stackInteger(1), stackInteger(0)))) {
+        if (!pop2AndPushIntResult(InterpreterHelper.safeMultiply(stackInteger(1), stackInteger(0)))) {
             sendSpecial(bytecode & 0xF);
         }
     };
 
     private final BytecodeExcutor bytecodePrimDivide = (bytecode) -> {
         success = true;
-        if (!pop2AndPushIntResult(quickDivide(stackInteger(1), stackInteger(0)))) {
+        if (!pop2AndPushIntResult(InterpreterHelper.quickDivide(stackInteger(1), stackInteger(0)))) {
             sendSpecial(bytecode & 0xF);
         }
     };
 
     private final BytecodeExcutor bytecodePrimMod = (bytecode) -> {
         success = true;
-        if (!pop2AndPushIntResult(mod(stackInteger(1), stackInteger(0)))) {
+        if (!pop2AndPushIntResult(InterpreterHelper.mod(stackInteger(1), stackInteger(0)))) {
             sendSpecial(bytecode & 0xF);
         }
     };
@@ -1439,7 +1359,7 @@ public class SqueakVM {
 
     private final BytecodeExcutor bytecodePrimDiv = (bytecode) -> {
         success = true;
-        if (!pop2AndPushIntResult(div(stackInteger(1), stackInteger(0)))) {
+        if (!pop2AndPushIntResult(InterpreterHelper.div(stackInteger(1), stackInteger(0)))) {
             sendSpecial(bytecode & 0xF);
         }
     };
