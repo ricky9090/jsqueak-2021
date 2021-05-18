@@ -23,7 +23,7 @@ THE SOFTWARE.
 
 package org.jsqueak.core;
 
-import java.awt.Rectangle;
+import java.awt.*;
 
 /**
  * @author Dan Ingalls
@@ -159,6 +159,7 @@ public class BitBlt {
         isWarping = doWarp;
         Object[] bbPointers = bbObject.pointers;
         combinationRule = checkIntValue(bbPointers[3]);
+        //SqueakLogger.log_D("loadBitBlt combinationRule: " + combinationRule);
 
         if (!SqueakVM.INSTANCE.isSuccess()
                 || (combinationRule < 0)
@@ -1204,9 +1205,9 @@ public class BitBlt {
                 (shifts[Const.GreenIndex] == 0) && (
                         (shifts[Const.BlueIndex] == 0) && (
                                 (shifts[Const.AlphaIndex] == 0) && (
-                                        (masks[Const.RedIndex] == 16711680) && (
-                                                (masks[Const.GreenIndex] == 65280) && (
-                                                        (masks[Const.BlueIndex] == 255) && (masks[Const.AlphaIndex] == 0xFF000000)))))))) {
+                                        (masks[Const.RedIndex] == 0x00FF0000) && (
+                                                (masks[Const.GreenIndex] == 0x0000FF00) && (
+                                                        (masks[Const.BlueIndex] == 0x000000FF) && (masks[Const.AlphaIndex] == 0xFF000000)))))))) {
             return true;
         }
         return false;
@@ -1221,7 +1222,6 @@ public class BitBlt {
         if (((d = nBitsOut - nBitsIn)) > 0) {
 
             /* Expand to more bits by zero-fill */
-
 
             /* Transfer mask */
 
@@ -1273,6 +1273,111 @@ public class BitBlt {
         }
     }
 
+    private int partitionedMaxwithnBitsnPartitions(int sourceWord, int destinationWord, int nBits, int nParts) {
+        int result;
+        int i;
+        int mask;
+
+        /* partition mask starts at the right */
+        mask = maskTable[nBits];
+        result = 0;
+        for (i = 1; i <= nParts; i++) {
+            result = result | Math.max((destinationWord & mask), (sourceWord & mask));
+
+            /* slide left to next partition */
+            mask = InterpreterHelper.SHL(mask, nBits);
+        }
+        return result;
+    }
+
+    private int partitionedMinwithnBitsnPartitions(int sourceWord, int destinationWord, int nBits, int nParts) {
+        int result;
+        int i;
+        int mask;
+
+        /* partition mask starts at the right */
+        mask = maskTable[nBits];
+        result = 0;
+        for (i = 1; i <= nParts; i++) {
+            result = result | Math.min((destinationWord & mask), (sourceWord & mask));
+
+            /* slide left to next partition */
+            mask = InterpreterHelper.SHL(mask, nBits);
+        }
+        return result;
+    }
+
+    private int alphaBlendConstwithpaintMode(int sourceWord, int destinationWord, boolean paintMode) {
+        int rgbMask;
+        int pixMask;
+        int pixBlend;
+        int j;
+        int sourceShifted;
+        int result;
+        int shift;
+        int sourcePixVal;
+        int i;
+        int unAlpha;
+        int destPixVal;
+        int blendRB;
+        int blendAG;
+        int bitsPerColor;
+        int blend;
+        int destShifted;
+        int maskShifted;
+
+        int destDepth = dest.depth;
+        int destPPW = Math.floorDiv(32, destDepth);
+
+        if (destDepth < 16) {
+            return destinationWord;
+        }
+        unAlpha = 255 - sourceAlpha;
+        result = destinationWord;
+        if (destPPW == 1) {
+            /* 32bpp blends include alpha */
+            if (!(paintMode && (sourceWord == 0))) {
+                /* painting a transparent pixel */
+
+                /* blendRB red and blue */
+                blendRB = (((sourceWord & 0x00FF00FF) * sourceAlpha) + ((destinationWord & 0x00FF00FF) * unAlpha)) + 0x00FF00FF;
+
+                /* blendRB alpha and green */
+                blendAG = ((((sourceWord >>> 8) & 0x00FF00FF) * sourceAlpha) + (((destinationWord >>> 8) & 0x00FF00FF) * unAlpha)) + 0x00FF00FF;
+
+                /* divide by 255 */
+                blendRB = ((blendRB + (((blendRB - 65537) >>> 8) & 0x00FF00FF)) >>> 8) & 0x00FF00FF;
+                blendAG = ((blendAG + (((blendAG - 65537) >>> 8) & 0x00FF00FF)) >>> 8) & 0x00FF00FF;
+                result = blendRB | (blendAG << 8);
+            }
+        } else {
+            pixMask = maskTable[destDepth];
+            bitsPerColor = 5;
+            rgbMask = 31;
+            maskShifted = destMask;
+            destShifted = destinationWord;
+            sourceShifted = sourceWord;
+            for (j = 1; j <= destPPW; j++) {
+                sourcePixVal = sourceShifted & pixMask;
+                if (!(((maskShifted & pixMask) == 0) || (paintMode && (sourcePixVal == 0)))) {
+                    destPixVal = destShifted & pixMask;
+                    pixBlend = 0;
+                    for (i = 1; i <= 3; i++) {
+                        shift = (i - 1) * bitsPerColor;
+                        blend = (InterpreterHelper.div((((((InterpreterHelper.SHR(sourcePixVal, shift)) & rgbMask) * sourceAlpha)
+                                + (((InterpreterHelper.SHR(destPixVal, shift)) & rgbMask) * unAlpha)) + 254), 255)) & rgbMask;
+                        pixBlend = pixBlend | (InterpreterHelper.SHL(blend, shift));
+                    }
+                    result = (result & ~(InterpreterHelper.SHL(pixMask, ((j - 1) * 16)))) | (InterpreterHelper.SHL(pixBlend, ((j - 1) * 16)));
+                }
+                maskShifted = InterpreterHelper.SHR(maskShifted, destDepth);
+                sourceShifted = InterpreterHelper.SHR(sourceShifted, destDepth);
+                destShifted = InterpreterHelper.SHR(destShifted, destDepth);
+            }
+        }
+        return result;
+    }
+
     interface IMergeFn {
         int execute(int sourceWord, int destinationWord);
     }
@@ -1318,7 +1423,9 @@ public class BitBlt {
      */
 
     /**
-     * Original BBOptable in interp.c
+     * Refer:
+     * 1. BBOptable in interp.c
+     * 2. BBOptable in SqueakJS
      * TODO complete all function of BBOpTable
      */
     private void initBBOpTable() {
@@ -1354,6 +1461,7 @@ public class BitBlt {
 
         // SqueakFunction:: bitXorwith
         _BBOpTable[6 + 1] = (sourceWord, destinationWord) -> {
+            //SqueakLogger.log_D("combinationRule 6, source: " + sourceWord + ", destination: " + destinationWord);
             return sourceWord ^ destinationWord;
         };
 
@@ -1476,7 +1584,6 @@ public class BitBlt {
         };
 
         // SqueakFunction:: OLDtallyIntoMapwith
-        // TODO
         _BBOpTable[23 + 1] = (sourceWord, destinationWord) -> {
             int pixMask;
             int mapIndex;
@@ -1521,9 +1628,34 @@ public class BitBlt {
         };
 
         // SqueakFunction:: alphaBlendwith
-        // TODO
         _BBOpTable[24 + 1] = (sourceWord, destinationWord) -> {
-            return sourceWord;
+            int unAlpha;
+            int blendRB;
+            int blendAG;
+            int result;
+            int alpha;
+
+            /* High 8 bits of source pixel */
+            alpha = sourceWord >>> 24;
+            if (alpha == 0) {
+                return destinationWord;
+            }
+            if (alpha == 255) {
+                return sourceWord;
+            }
+            unAlpha = 255 - alpha;
+
+            /* blend red and blue */
+            blendRB = (((sourceWord & 0x00FF00FF) * alpha) + ((destinationWord & 0x00FF00FF) * unAlpha)) + 0x00FF00FF;
+
+            /* blend alpha and green */
+            blendAG = (((((sourceWord >>> 8) | 0x00FF0000) & 0x00FF00FF) * alpha) + (((destinationWord >>> 8) & 0x00FF00FF) * unAlpha)) + 0x00FF00FF;
+
+            /* divide by 255 */
+            blendRB = ((blendRB + (((blendRB - 65537) >>> 8) & 0x00FF00FF)) >>> 8) & 0x00FF00FF;
+            blendAG = ((blendAG + (((blendAG - 65537) >>> 8) & 0x00FF00FF)) >>> 8) & 0x00FF00FF;
+            result = blendRB | (blendAG << 8);
+            return result;
         };
 
         // SqueakFunction:: pixPaintwith
@@ -1540,45 +1672,169 @@ public class BitBlt {
         };
 
         // SqueakFunction:: rgbMaxwith
-        // TODO
         _BBOpTable[27 + 1] = (sourceWord, destinationWord) -> {
-            return sourceWord;
+            int destDepth = dest.depth;
+            int destPPW = Math.floorDiv(32, destDepth);
+
+            if (destDepth < 16) {
+                /* Max each pixel separately */
+                return partitionedMaxwithnBitsnPartitions(sourceWord, destinationWord, destDepth, destPPW);
+            }
+            if (destDepth == 16) {
+                /* Max RGB components of each pixel separately */
+                return partitionedMaxwithnBitsnPartitions(sourceWord, destinationWord, 5, 3)
+                        + (partitionedMaxwithnBitsnPartitions(sourceWord >>> 16, destinationWord >>> 16, 5, 3) << 16);
+            } else {
+                /* Max RGBA components of the pixel separately */
+                return partitionedMaxwithnBitsnPartitions(sourceWord, destinationWord, 8, 4);
+            }
         };
 
         // SqueakFunction:: rgbMinwith
-        // TODO
         _BBOpTable[28 + 1] = (sourceWord, destinationWord) -> {
-            return sourceWord;
+            int destDepth = dest.depth;
+            int destPPW = Math.floorDiv(32, destDepth);
+
+            if (destDepth < 16) {
+                /* Min each pixel separately */
+                return partitionedMinwithnBitsnPartitions(sourceWord, destinationWord, destDepth, destPPW);
+            }
+            if (destDepth == 16) {
+                /* Min RGB components of each pixel separately */
+                return partitionedMinwithnBitsnPartitions(sourceWord, destinationWord, 5, 3)
+                        + (partitionedMinwithnBitsnPartitions(sourceWord >>> 16, destinationWord >>> 16, 5, 3) << 16);
+            } else {
+                /* Min RGBA components of the pixel separately */
+                return partitionedMinwithnBitsnPartitions(sourceWord, destinationWord, 8, 4);
+            }
         };
 
         // SqueakFunction:: rgbMinInvertwith
-        // TODO
         _BBOpTable[29 + 1] = (sourceWord, destinationWord) -> {
-            return sourceWord;
+            int sourceWordInvert;
+            int destDepth = dest.depth;
+            int destPPW = Math.floorDiv(32, destDepth);
+
+            sourceWordInvert = ~sourceWord;
+
+            if (destDepth < 16) {
+                /* Min each pixel separately */
+                return partitionedMinwithnBitsnPartitions(sourceWordInvert, destinationWord, destDepth, destPPW);
+            }
+            if (destDepth == 16) {
+                /* Min RGB components of each pixel separately */
+                return partitionedMinwithnBitsnPartitions(sourceWordInvert, destinationWord, 5, 3)
+                        + (partitionedMinwithnBitsnPartitions(sourceWordInvert >>> 16, destinationWord >>> 16, 5, 3) << 16);
+            } else {
+                /* Min RGBA components of the pixel separately */
+                return partitionedMinwithnBitsnPartitions(sourceWordInvert, destinationWord, 8, 4);
+            }
         };
 
         // SqueakFunction:: alphaBlendConstwith
-        // TODO
         _BBOpTable[30 + 1] = (sourceWord, destinationWord) -> {
-            return sourceWord;
+            return alphaBlendConstwithpaintMode(sourceWord, destinationWord, false);
         };
 
         // SqueakFunction:: alphaPaintConstwith
-        // TODO
         _BBOpTable[31 + 1] = (sourceWord, destinationWord) -> {
-            return sourceWord;
+            if (sourceWord == 0) {
+                return destinationWord;
+            }
+            return alphaBlendConstwithpaintMode(sourceWord, destinationWord, true);
         };
 
         // SqueakFunction:: rgbDiffwith
-        // TODO
         _BBOpTable[32 + 1] = (sourceWord, destinationWord) -> {
-            return sourceWord;
+            int sourcePixVal;
+            int bitsPerColor;
+            int diff;
+            int sourceShifted;
+            int pixMask;
+            int rgbMask;
+            int destShifted;
+            int i;
+            int maskShifted;
+            int destPixVal;
+
+            int destDepth = dest.depth;
+            int destPPW = Math.floorDiv(32, destDepth);
+
+            pixMask = maskTable[destDepth];
+            if (destDepth == 16) {
+                bitsPerColor = 5;
+                rgbMask = 31;
+            } else {
+                bitsPerColor = 8;
+                rgbMask = 255;
+            }
+            maskShifted = destMask;
+            destShifted = destinationWord;
+            sourceShifted = sourceWord;
+            for (i = 1; i <= destPPW; i++) {
+                if ((maskShifted & pixMask) > 0) {
+
+                    /* Only tally pixels within the destination rectangle */
+                    destPixVal = destShifted & pixMask;
+                    sourcePixVal = sourceShifted & pixMask;
+                    if (destDepth < 16) {
+                        if (sourcePixVal == destPixVal) {
+                            diff = 0;
+                        } else {
+                            diff = 1;
+                        }
+                    } else {
+                        diff = partitionedSubfromnBitsnPartitions(sourcePixVal, destPixVal, bitsPerColor, 3);
+                        diff = ((diff & rgbMask) + ((InterpreterHelper.SHR(diff, bitsPerColor)) & rgbMask))
+                                + ((InterpreterHelper.SHR((InterpreterHelper.SHR(diff, bitsPerColor)), bitsPerColor)) & rgbMask);
+                    }
+                    bitCount += diff;
+                }
+                maskShifted = InterpreterHelper.SHR(maskShifted, destDepth);
+                sourceShifted = InterpreterHelper.SHR(sourceShifted, destDepth);
+                destShifted = InterpreterHelper.SHR(destShifted, destDepth);
+            }
+            return destinationWord;
         };
 
         // SqueakFunction:: tallyIntoMapwith
-        // TODO
         _BBOpTable[33 + 1] = (sourceWord, destinationWord) -> {
-            return sourceWord;
+            int pixMask;
+            int mapIndex;
+            int destShifted;
+            int i;
+            int maskShifted;
+            int pixVal;
+
+            int destDepth = dest.depth;
+            int destPPW = Math.floorDiv(32, destDepth);
+
+            if ((cmFlags & (Const.ColorMapPresent | Const.ColorMapIndexedPart)) != (Const.ColorMapPresent | Const.ColorMapIndexedPart)) {
+                return destinationWord;
+            }
+            pixMask = maskTable[destDepth];
+            destShifted = destinationWord;
+            maskShifted = destMask;
+            for (i = 1; i <= destPPW; i++) {
+                if ((maskShifted & pixMask) != 0) {
+
+                    /* Only tally pixels within the destination rectangle */
+                    pixVal = destShifted & pixMask;
+                    if (destDepth < 16) {
+                        mapIndex = pixVal;
+                    } else {
+                        if (destDepth == 16) {
+                            mapIndex = rgbMapfromto(pixVal, 5, cmBitsPerColor);
+                        } else {
+                            mapIndex = rgbMapfromto(pixVal, 8, cmBitsPerColor);
+                        }
+                    }
+                    tallyMapAtput(mapIndex, tallyMapAt(mapIndex) + 1);
+                }
+                maskShifted = InterpreterHelper.SHR(maskShifted, destDepth);
+                destShifted = InterpreterHelper.SHR(destShifted, destDepth);
+            }
+            return destinationWord;
         };
 
     }
