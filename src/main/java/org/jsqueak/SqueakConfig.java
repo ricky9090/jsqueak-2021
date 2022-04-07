@@ -9,9 +9,17 @@ import java.awt.image.ColorModel;
  */
 public class SqueakConfig {
 
-    public static final boolean DEBUG_LOGGING = true;
+    /**
+     * Config for debugging propose
+     */
+    public static class Debug {
 
-    public static final boolean PRIMITIVE_FAILED_LOGGING = true;
+        public static final boolean DEBUGGABLE = true;
+
+        public static final boolean LOGGING = true;
+
+        public static final boolean PRIMITIVE_LOGGING = true;
+    }
 
     public static final int LOGGING_MAX_LEN = 300;
 

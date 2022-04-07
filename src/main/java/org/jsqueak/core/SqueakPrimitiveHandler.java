@@ -2057,7 +2057,7 @@ public class SqueakPrimitiveHandler {
     }
 
     private boolean primitiveFail(int index) {
-        if (SqueakConfig.PRIMITIVE_FAILED_LOGGING) {
+        if (SqueakConfig.Debug.PRIMITIVE_LOGGING) {
             SqueakLogger.log_D("Primitive failed at: " + index);
         }
         return false;

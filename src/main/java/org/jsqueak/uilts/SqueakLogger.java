@@ -8,13 +8,13 @@ public class SqueakLogger {
     public static final String LOG_BLOCK_ENDDER = "    +----------";
 
     public static void log_D(String msg) {
-        if (SqueakConfig.DEBUG_LOGGING) {
+        if (SqueakConfig.Debug.LOGGING) {
             System.out.println(msg);
         }
     }
 
     public static void log_E(String msg) {
-        if (SqueakConfig.DEBUG_LOGGING) {
+        if (SqueakConfig.Debug.LOGGING) {
             System.err.println(msg);
         }
     }

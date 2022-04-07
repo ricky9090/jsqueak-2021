@@ -23,6 +23,7 @@ THE SOFTWARE.
 
 package org.jsqueak.core;
 
+import org.jsqueak.SqueakConfig;
 import org.jsqueak.uilts.SqueakLogger;
 import org.jsqueak.uilts.ObjectUtils;
 
@@ -57,7 +58,6 @@ import java.util.zip.GZIPOutputStream;
 public class SqueakImage {
     private final String DEFAULT_IMAGE_NAME = "jsqueak.image";
 
-    private SqueakVM vm;
     //private WeakReference[] objectTable;
     //private int otMaxUsed;
     //private int otMaxOld;
@@ -92,10 +92,6 @@ public class SqueakImage {
 
     File imageFile() {
         return imageFile;
-    }
-
-    void bindVM(SqueakVM theVM) {
-        vm = theVM;
     }
 
     private void loaded(InputStream raw) throws IOException {
@@ -200,7 +196,9 @@ public class SqueakImage {
         SqueakVM.objectMemory.installObjects(oopMap, ccArray, floatClass);
         System.out.println("Done installing at " + System.currentTimeMillis());
 
-        dumpObjOfImage();
+        if (SqueakConfig.Debug.DEBUGGABLE) {
+            dumpObjOfImage();
+        }
         //Proper version of spl objs -- it's a good object
         specialObjectsArray = (SqueakObject) (oopMap.get(specialObjectsOopInt));
 

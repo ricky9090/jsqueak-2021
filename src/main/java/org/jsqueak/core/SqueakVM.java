@@ -127,7 +127,6 @@ public class SqueakVM {
     public SqueakVM(SqueakImage anImage) {
         // canonical creation
         image = anImage;
-        image.bindVM(this);
         primHandler = new SqueakPrimitiveHandler(this);
         loadImageState();
         initVMState();
