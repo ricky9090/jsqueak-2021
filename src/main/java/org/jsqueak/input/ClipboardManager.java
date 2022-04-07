@@ -8,12 +8,19 @@ import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.StringSelection;
 import java.awt.datatransfer.Transferable;
 
+/**
+ * Clipboard manager between squeak world and OS
+ */
 public class ClipboardManager {
 
     String clipboard;
 
     public void reset() {
         clipboard = null;
+    }
+
+    public String getClipboard() {
+        return clipboard;
     }
 
     public int clipboardSize() {
@@ -29,6 +36,9 @@ public class ClipboardManager {
         writeToSystemClipboard(str);
     }
 
+    /**
+     * Write the clipboard content from squeak to OS
+     */
     public void clipboardWrite(SqueakObject aStringObj) {
         String asStr = aStringObj.asString();
         clipboard = asStr;
@@ -36,10 +46,9 @@ public class ClipboardManager {
         writeToSystemClipboard(asStr);
     }
 
-    public String getClipboard() {
-        return clipboard;
-    }
-
+    /**
+     * Read clipboard content from OS, return as a Squeak String object
+     */
     public SqueakObject clipboardRead() {
         String target;
         if (clipboard == null) {
@@ -47,7 +56,7 @@ public class ClipboardManager {
         } else {
             // Because we write system clipboard every time the clipboardWrite() called
             // so if there is a difference between two clipboards,
-            // the system one should have been updated
+            // the system one should have been updated outside from squeak
             String systemClipboardText = readSystemClipboard();
             if (clipboard.equals(systemClipboardText)) {
                 target = clipboard;
